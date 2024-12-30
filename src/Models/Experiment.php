@@ -5,12 +5,14 @@ namespace MadLab\Evolve\Models;
 use Illuminate\Database\Eloquent\Casts\AsCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cookie;
 
 class Experiment extends Model
 {
     use HasFactory;
 
+    protected $table = 'evolve_experiments';
     protected $guarded = [];
     protected static $userVariant;
 
@@ -32,17 +34,18 @@ class Experiment extends Model
                 Cookie::queue('evolve', json_encode($cookieData));
                 $this->incrementView($variant);
             }
-
             $this->userVariant = $cookieData[$this->id];
-        }
-        if (! app()->environment('production')) {
-            $key = $this->variants->search($variant);
-            $variant = $this->variants->get($key + 1) ?? $this->variants->first();
 
-            $cookieData[$this->id] = $variant;
-            Cookie::queue('evolve', json_encode($cookieData));
+            if (! app()->environment('production')) {
+                $key = $this->variants->search($this->userVariant);
+                $variant = $this->variants->get($key + 1) ?? $this->variants->first();
 
-            $this->userVariant = $variant;
+                $cookieData[$this->id] = $variant;
+                Cookie::queue('evolve', json_encode($cookieData));
+
+                $this->userVariant = $variant;
+            }
+
         }
 
         if ($this->is_active) {
@@ -54,11 +57,11 @@ class Experiment extends Model
 
     public function incrementView($variant)
     {
-        $variantView = $this->VariantViews()->where('variant', $variant)->first();
-        if ($variantView) {
-            $variantView->increment('views');
+        $view = $this->views()->where('variant', $variant)->first();
+        if ($view) {
+            $view->increment('views');
         } else {
-            $this->VariantViews()->create([
+            $this->views()->create([
                 'variant' => $variant,
                 'views' => 1,
             ]);
@@ -68,24 +71,32 @@ class Experiment extends Model
     public static function recordConversion(string $experimentName)
     {
         $experiment = Experiment::where('name', $experimentName)->first();
-        if (session()->has('evolve_'.$experiment->id)) {
-            $variant = session()->get('segment_'.$experiment->id);
-            if ($experiment->variants->contains($variant)) {
-                $experiment->incrementConversion($variant);
-            }
+
+        $cookie = request()->cookie('evolve');
+        $cookieData = json_decode($cookie, true);
+
+        $variant = $cookieData[$experiment->id];
+        if ($experiment->variants->contains($variant)) {
+            $experiment->incrementConversion($variant);
         }
     }
 
     public function incrementConversion($variant)
     {
-        $segmentTestView = $this->SegmentTestViews()->where('variant', $variant)->first();
-        if ($segmentTestView) {
-            $segmentTestView->increment('conversions');
+        $view = $this->views()->where('variant', $variant)->first();
+        if ($view) {
+            $view->increment('conversions');
         } else {
-            $this->SegmentTestViews()->create([
+            $this->views()->create([
                 'variant' => $variant,
                 'conversions' => 1,
             ]);
         }
+    }
+
+
+    public function views(): HasMany
+    {
+        return $this->hasMany(View::class);
     }
 }

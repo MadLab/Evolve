@@ -37,8 +37,6 @@ class EvolveServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'evolve');
 
-        /** @var Router $router */
-
         $kernel->prependMiddlewareToGroup('web',  ControllerVersion::class);
 
         $this->app->singleton('experiments', function($app) {
