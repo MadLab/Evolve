@@ -82,9 +82,15 @@ class Evolve extends Model
     public static function recordConversion(string $experimentName)
     {
         $experiment = self::where('name', $experimentName)->first();
+        if(!$experiment){
+            return false;
+        }
 
         $cookie = request()->cookie('evolve');
         $cookieData = json_decode($cookie, true);
+        if(is_null($cookieData)){
+            return false;
+        }
 
         $variant = $cookieData[$experiment->id] ?? false;
         if ($variant && $experiment->variants->contains($variant)) {
