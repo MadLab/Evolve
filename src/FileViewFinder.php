@@ -6,7 +6,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\View;
 use Illuminate\View\ViewFinderInterface;
 use InvalidArgumentException;
-use MadLab\Evolve\Models\Experiment;
+use MadLab\Evolve\Models\Evolve;
 
 class FileViewFinder extends \Illuminate\View\FileViewFinder
 {

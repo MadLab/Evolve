@@ -14,6 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('evolve_views', function (Blueprint $table) {
+            $table->id();
             $table->foreignIdFor(\MadLab\Evolve\Models\Experiment::class);
             $table->string('variant');
             $table->unsignedInteger('views')->default(0);

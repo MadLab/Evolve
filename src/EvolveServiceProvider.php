@@ -4,18 +4,20 @@ namespace MadLab\Evolve;
 
 
 use Illuminate\Contracts\Http\Kernel as HttpKernel;
-use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use MadLab\Evolve\Http\Middleware\ControllerVersion;
-use MadLab\Evolve\Models\Experiment;
+use MadLab\Evolve\Models\Evolve;
+use MadLab\Evolve\BladeManager;
 
 class EvolveServiceProvider extends ServiceProvider
 {
     public function register()
     {
 
-        $this->mergeConfigFrom(__DIR__.'/../config/config.php', 'evolve');
+        $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'evolve');
 
         $this->app->bind('view.finder', function ($app) {
             return new FileViewFinder($app['files'], $app['config']['view.paths']);
@@ -24,30 +26,41 @@ class EvolveServiceProvider extends ServiceProvider
 
     public function boot(HttpKernel $kernel)
     {
+        $this->defineGate();
+        $this->registerRoutes();
 
         if ($this->app->runningInConsole()) {
-            \Log::info('Publishing resources in EvolveServiceProvider...');
-
             $this->publishes([
-                __DIR__.'/../config/config.php' => config_path('evolve.php'),
+                __DIR__ . '/../config/config.php' => config_path('evolve.php'),
             ], 'evolve-config');
 
         }
-        $this->registerRoutes();
+
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'evolve');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'evolve');
 
-        $kernel->prependMiddlewareToGroup('web',  ControllerVersion::class);
+        $kernel->prependMiddlewareToGroup('web', ControllerVersion::class);
 
-        $this->app->singleton('experiments', function($app) {
-            return Experiment::where('is_active', true)->get();
+        $this->app->singleton('experiments', function ($app) {
+            return Evolve::where('is_active', true)->get();
+        });
+
+        Blade::component(\MadLab\Evolve\Components\Evolve::class, 'evolve');
+
+
+    }
+
+    protected function defineGate()
+    {
+        Gate::define('viewEvolveAdminPanel', function ($user) {
+            return in_array($user->email, config('evolve.admin_emails', []));
         });
     }
 
     protected function registerRoutes()
     {
         Route::group($this->routeConfiguration(), function () {
-            $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+            $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         });
     }
 

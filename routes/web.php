@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use MadLab\Evolve\Http\Controllers\ExperimentController;
 
 
-Route::get('/experiments', [ExperimentController::class, 'index'])
+Route::get('/', [ExperimentController::class, 'index'])
     ->name('evolve.experiments.index');
-Route::get('/experiments/{experiment}', [ExperimentController::class, 'show'])
+Route::get('/{experiment}', [ExperimentController::class, 'show'])
     ->name('evolve.experiments.show');

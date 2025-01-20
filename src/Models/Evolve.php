@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cookie;
 
-class Experiment extends Model
+class Evolve extends Model
 {
     use HasFactory;
 
@@ -21,6 +21,17 @@ class Experiment extends Model
         return [
             'variants' => AsCollection::class,
         ];
+    }
+
+    public static function getValue($experiment){
+
+        $experiment = self::where('name', $experiment)
+            ->where('is_active', true)
+            ->first();
+        if(!$experiment){
+            return null;
+        }
+        return $experiment->getUserVariant();
     }
 
     public function getUserVariant(){
@@ -70,13 +81,13 @@ class Experiment extends Model
 
     public static function recordConversion(string $experimentName)
     {
-        $experiment = Experiment::where('name', $experimentName)->first();
+        $experiment = self::where('name', $experimentName)->first();
 
         $cookie = request()->cookie('evolve');
         $cookieData = json_decode($cookie, true);
 
-        $variant = $cookieData[$experiment->id];
-        if ($experiment->variants->contains($variant)) {
+        $variant = $cookieData[$experiment->id] ?? false;
+        if ($variant && $experiment->variants->contains($variant)) {
             $experiment->incrementConversion($variant);
         }
     }
@@ -89,6 +100,7 @@ class Experiment extends Model
         } else {
             $this->views()->create([
                 'variant' => $variant,
+                'views' => 1,
                 'conversions' => 1,
             ]);
         }
@@ -97,6 +109,6 @@ class Experiment extends Model
 
     public function views(): HasMany
     {
-        return $this->hasMany(View::class);
+        return $this->hasMany(View::class, 'experiment_id', 'id');
     }
 }
