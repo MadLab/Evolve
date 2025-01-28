@@ -16,9 +16,7 @@ return new class extends Migration
         Schema::create('evolve_experiments', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('type', ['controller', 'view', 'data']);
-            $table->string('trigger');
-            $table->json('variants');
+            $table->integer('total_views');
             $table->boolean('is_active')->default(false);
             $table->timestamps();
         });

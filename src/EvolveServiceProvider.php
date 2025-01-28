@@ -8,20 +8,13 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use MadLab\Evolve\Http\Middleware\ControllerVersion;
 use MadLab\Evolve\Models\Evolve;
-use MadLab\Evolve\BladeManager;
 
 class EvolveServiceProvider extends ServiceProvider
 {
     public function register()
     {
-
         $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'evolve');
-
-        $this->app->bind('view.finder', function ($app) {
-            return new FileViewFinder($app['files'], $app['config']['view.paths']);
-        });
     }
 
     public function boot(HttpKernel $kernel)
@@ -38,8 +31,6 @@ class EvolveServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'evolve');
-
-        $kernel->prependMiddlewareToGroup('web', ControllerVersion::class);
 
         $this->app->singleton('experiments', function ($app) {
             return Evolve::where('is_active', true)->get();

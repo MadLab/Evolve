@@ -47,14 +47,16 @@
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
-                            @foreach($experiment->views as $view)
+                            @foreach($experiment->variantLogs as $variant)
                                 <tr>
 
-                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8">{{$view->variant}}</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$view->views}}</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$view->conversions}}</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$view->conversion_rate}}%</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$view->conversion_range}}</td>
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8 overflow-scroll">
+                                        <textarea class="w-full h-full text-xs" rows="5">{{$variant->content}}</textarea>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->views}}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->conversions}}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->conversion_rate}}%</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->conversion_range}}</td>
                                 </tr>
                             @endforeach
 

@@ -13,13 +13,14 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('evolve_views', function (Blueprint $table) {
+        Schema::create('evolve_variants', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(\MadLab\Evolve\Models\Variant::class, 'variant_id')->unique();
-            $table->unsignedInteger('views')->default(0);
-            $table->unsignedInteger('conversions')->default(0);
+            $table->foreignIdFor(\MadLab\Evolve\Models\Evolve::class, 'experiment_id');
+            $table->string('hash');
+            $table->longText('content');
             $table->timestamps();
-
+            $table->softDeletes();
+            $table->unique(['experiment_id', 'hash']);
         });
     }
 
@@ -30,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('evolve_views');
+        Schema::dropIfExists('evolve_variants');
     }
 };

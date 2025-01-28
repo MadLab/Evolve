@@ -28,7 +28,7 @@
         @forelse ($copyExperiments as $experiment)
             <div class="bg-white shadow rounded-lg p-6">
                 <h2 class="text-lg font-bold mb-4">{{$experiment->name}}</h2>
-                <p class="text-gray-600">{{$experiment->variants->count()}} Variants</p>
+                <p class="text-gray-600">{{$experiment->variantLogs->count()}} Variants</p>
                 <a href="{{route('evolve.experiments.show', $experiment)}}" class="inline-block mt-4 text-emerald-600 hover:underline">View Experiment →</a>
             </div>
         @empty

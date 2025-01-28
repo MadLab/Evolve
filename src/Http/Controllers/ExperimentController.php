@@ -13,7 +13,7 @@ class ExperimentController extends Controller
     {
         abort_unless(Gate::allows('viewEvolveAdminPanel'), 403);
 
-        $copyExperiments = Evolve::where('type', 'data')->where('is_active', true)->get();
+        $copyExperiments = Evolve::where('is_active', true)->get();
 
         return view('evolve::experiments.index', compact('copyExperiments'));
     }

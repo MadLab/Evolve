@@ -33,20 +33,15 @@ class Evolve extends Component
 
             $experiment = EvolveExperiment::firstOrCreate([
                 'name' => $this->test,
-            ],[
-                'type' => 'data',
-                'variants' => $variants,
+            ], [
                 'is_active' => true
             ]);
-            /**
-             * Create new test if not there (active by default).
-             * Then add any new variants, and remove any ones that no longer exist
-             * finally, pick a variant if test is active, else default
-             *
-             * Note: default should be in rotation for variant selection
-             */
+            if($experiment->is_active){
+                $experiment->syncVariants($variants);
+                return $experiment->getUserVariant();
+            }
 
-            return EvolveExperiment::getValue($this->test)?: $this->getDefaultVariant();
+            return $this->getDefaultVariant();
         };
     }
 
