@@ -3,7 +3,6 @@
 namespace MadLab\Evolve\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Gate;
 use MadLab\Evolve\Models\Evolve;
 
@@ -13,9 +12,10 @@ class ExperimentController extends Controller
     {
         abort_unless(Gate::allows('viewEvolveAdminPanel'), 403);
 
-        $copyExperiments = Evolve::where('is_active', true)->get();
+        $activeExperiments = Evolve::where('is_active', true)->get();
+        $inactiveExperiments = Evolve::where('is_active', false)->get();
 
-        return view('evolve::experiments.index', compact('copyExperiments'));
+        return view('evolve::experiments.index', compact('activeExperiments', 'inactiveExperiments'));
     }
 
     public function show(Evolve $experiment)
