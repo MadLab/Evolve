@@ -30,7 +30,10 @@
                     <h1 class="text-base font-semibold text-gray-900">{{$experiment->name}}</h1>
                 </div>
                 <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-                    <button type="button" class="block rounded-md bg-green-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Pause Experiment</button>
+                    <form method="post">
+                        <input type="hidden" name="action" value="{{$experiment->is_active?'disable':'enable'}}">
+                        <button type="button" class="block rounded-md bg-green-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Pause Experiment</button>
+                    </form>
                 </div>
             </div>
             <div class="mt-8 flow-root">
@@ -41,7 +44,7 @@
                             <tr>
                                 <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 lg:pl-8">Variant</th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Views</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Convesions</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Conversions</th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Rate</th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Range</th>
                             </tr>
@@ -60,21 +63,13 @@
                                 </tr>
                             @endforeach
 
-
-                            <!-- More people... -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
-
-
-        </table>
     </div>
-
-
 </main>
-
 </body>
 </html>

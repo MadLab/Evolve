@@ -24,4 +24,17 @@ class ExperimentController extends Controller
 
         return view('evolve::experiments.show', compact('experiment'));
     }
+
+    public function update(Request $request, Evolve $experiment)
+    {
+        if($request->action == 'enable') {
+            $experiment->is_active = true;
+            $experiment->save();
+        }
+        else{
+            $experiment->is_active = false;
+            $experiment->save();
+        }
+        return redirect()->route('evolve.experiments.index');
+    }
 }

@@ -23,7 +23,7 @@
 
 <!-- Main Content -->
 <main class="container mx-auto px-4 py-8">
-    <h2 class="text-3xl font-bold text-emerald-900">Copy Experiments</h2>
+    <h2 class="text-3xl font-bold text-emerald-900">Active Experiments</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-5">
         @forelse ($copyExperiments as $experiment)
             <div class="bg-white shadow rounded-lg p-6">
@@ -32,7 +32,7 @@
                 <a href="{{route('evolve.experiments.show', $experiment)}}" class="inline-block mt-4 text-emerald-600 hover:underline">View Experiment →</a>
             </div>
         @empty
-            <p> 'No Experiemnts yet' </p>
+            <p> 'No Experiments yet' </p>
         @endforelse
 
     </div>
