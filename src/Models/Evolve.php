@@ -92,29 +92,51 @@ class Evolve extends Model
         $variant->incrementView();
     }
 
-    public static function recordConversion(string $experimentName)
+    public static function recordConversion(string $conversionName)
     {
-        $experiment = self::where('name', $experimentName)->first();
-        if(!$experiment){
+        // Get all cookie data
+        $cookieData = self::getCookieData();
+
+        // Check if there's any cookie data
+        if (!$cookieData || empty($cookieData)) {
             return false;
         }
 
-        $variant = $experiment->getCookieData($experiment->id)??false;
+        // Loop through the cookie data (each experiment)
+        foreach ($cookieData as $experimentId => $variantHash) {
+            // Find the active experiment by its ID
+            $experiment = self::find($experimentId);
 
 
-        if ($variant) {
-            $experiment->incrementConversion($variant);
+            // If the experiment exists and is active, increment its conversion
+            if ($experiment && $experiment->is_active) {
+                $experiment->incrementConversion($variantHash, $conversionName);
+            }
         }
     }
 
-    public function incrementConversion($variant)
+    public function incrementConversion($variantHash, $conversionName)
     {
-        $variant = $this->variantLogs()->where('hash', $variant)->first();
+        // Find the variant by hash
+        $variant = $this->variantLogs()->where('hash', $variantHash)->first();
+
         if ($variant) {
-            $variant->view->increment('conversions');
+            // Get the current conversions data from the 'conversions' JSON field
+
+            $currentConversions = $variant->view->conversions ?? [];
+
+            if(is_null($currentConversions) || !is_array($currentConversions)){
+                $currentConversions = [];
+            }
+            // Increment the specific conversion count or initialize it
+            $currentConversions[$conversionName] = ($currentConversions[$conversionName] ?? 0) + 1;
+
+            // Update the 'conversions' field in the database
+            if($variant->view){
+                $variant->view->update(['conversions' => $currentConversions]);
+            }
         }
     }
-
     public function variantLogs(): HasMany
     {
         return $this->hasMany(Variant::class, 'experiment_id', 'id');

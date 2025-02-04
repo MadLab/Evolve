@@ -13,20 +13,20 @@ class View extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'value' => 'json'
+        'conversions' => 'json'
     ];
 
-    public function getConversionRateAttribute(){
-        return round(100 * ($this->conversions / ($this->views??1)), 2);
+    public function conversionRate($conversion){
+        return round(100 * (($this->conversions[$conversion]??0) / ($this->views??1)), 2);
     }
-    public function getConversionRangeAttribute(){
+    public function conversionRange($conversion){
 
         if ($this->views === 0) {
             return [0, 0, 0]; // Handle cases with no views.
         }
 
         $z = 1.96; // Z-score for 95% confidence. Change for other confidence levels.
-        $p = $this->conversions / ($this->views??1); // Conversion rate.
+        $p = ($this->conversions[$conversion]??0) / ($this->views??1); // Conversion rate.
         $n = $this->views??1;
 
         $zSquared = $z ** 2;

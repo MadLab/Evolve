@@ -42,27 +42,42 @@
                         <table class="min-w-full divide-y divide-gray-300">
                             <thead>
                             <tr>
+                                <!-- Static Columns -->
                                 <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 lg:pl-8">Variant</th>
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Views</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Conversions</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Rate</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Range</th>
+
+                                <!-- Dynamic Conversion Columns -->
+                                @php
+                                    $conversionNames = $experiment->variantLogs->flatMap(function ($variant) {
+                                        return array_keys($variant->view->conversions ?? []);
+                                    })->unique(); // Collect all unique conversion names
+                                @endphp
+
+                                @foreach($conversionNames as $conversionName)
+                                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">{{ ucfirst($conversionName) }}</th>
+                                @endforeach
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
                             @foreach($experiment->variantLogs as $variant)
                                 <tr>
-
                                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8 overflow-scroll">
                                         <textarea class="w-full h-full text-xs" rows="5">{{$variant->content}}</textarea>
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->views}}</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->conversions}}</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->conversion_rate}}%</td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view->conversion_range}}</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view?->views}}</td>
+
+                                    <!-- Dynamic Conversion Data -->
+                                    @foreach($conversionNames as $conversionName)
+                                        <td class="whitespace-nowrap px-3 py-4">
+                                            <ul>
+                                                <li class="font-medium">{{ $variant->view->conversions[$conversionName] ?? 0 }} <span class="text-xs text-gray-500">Conversions</span></li>
+                                                <li class="text-sm">{{ $variant->view->conversionRate($conversionName) }}% <span class="text-xs text-gray-500">Rate</span></li>
+                                                <li class="text-sm">{{ $variant->view->conversionRange($conversionName) }} <span class="text-xs text-gray-500">Range</span></li>
+                                            </ul>
+                                        </td>
+                                    @endforeach
                                 </tr>
                             @endforeach
-
                             </tbody>
                         </table>
                     </div>
