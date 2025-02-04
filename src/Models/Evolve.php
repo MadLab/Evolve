@@ -15,27 +15,42 @@ class Evolve extends Model
     protected $guarded = [];
 
     private static $cookieData;
+    private static $resolvedExperiments = [];
+
 
 
     public $variants;
 
 
-    public static function getValue($name, $variants){
-        $experiment = self::where('name', $name)
-            ->first();
-        if(!$experiment){
+    public static function getValue($name, $variants)
+    {
+        // Check if this experiment has already been resolved in this request
+        if (isset(self::$resolvedExperiments[$name])) {
+            return self::$resolvedExperiments[$name];
+        }
+
+        $experiment = self::where('name', $name)->first();
+        if (!$experiment) {
             $experiment = self::create([
                 'name' => $name,
-                'is_active'=> true
+                'is_active' => true,
             ]);
         }
-        if(!$experiment->is_active){
+
+        if (!$experiment->is_active) {
+            self::$resolvedExperiments[$name] = null; // Cache the null result
             return null;
         }
 
         $experiment->syncVariants($variants);
-        return $experiment->getUserVariant();
+
+        // Call getUserVariant to resolve the variant and cache the value
+        $value = $experiment->getUserVariant();
+        self::$resolvedExperiments[$name] = $value;
+
+        return $value;
     }
+
 
     public function getUserVariant(){
         if(!$this->is_active){
@@ -92,7 +107,7 @@ class Evolve extends Model
         $variant->incrementView();
     }
 
-    public static function recordConversion(string $conversionName)
+    public static function recordConversion(string $conversionName) : null
     {
         // Get all cookie data
         $cookieData = self::getCookieData();
