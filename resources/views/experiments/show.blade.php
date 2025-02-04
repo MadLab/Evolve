@@ -71,8 +71,8 @@
                                         <td class="whitespace-nowrap px-3 py-4">
                                             <ul>
                                                 <li class="font-medium">{{ $variant->view->conversions[$conversionName] ?? 0 }} <span class="text-xs text-gray-500">Conversions</span></li>
-                                                <li class="text-sm">{{ $variant->view->conversionRate($conversionName) }}% <span class="text-xs text-gray-500">Rate</span></li>
-                                                <li class="text-sm">{{ $variant->view->conversionRange($conversionName) }} <span class="text-xs text-gray-500">Range</span></li>
+                                                <li class="text-sm">{{ $variant->view?->conversionRate($conversionName) }}% <span class="text-xs text-gray-500">Rate</span></li>
+                                                <li class="text-sm">{{ $variant->view?->conversionRange($conversionName) }} <span class="text-xs text-gray-500">Range</span></li>
                                             </ul>
                                         </td>
                                     @endforeach
