@@ -107,7 +107,7 @@ class Evolve extends Model
         $variant->incrementView();
     }
 
-    public static function recordConversion(string $conversionName) : null
+    public static function recordConversion(string $conversionName)
     {
         // Get all cookie data
         $cookieData = self::getCookieData();
