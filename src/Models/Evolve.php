@@ -96,6 +96,7 @@ class Evolve extends Model
 
     public function incrementView($key, $value)
     {
+        $this->increment('total_views');
         $variant = $this->variantLogs()->where('hash', $key)->first();
         if (!$variant) {
             $variant = $this->variantLogs()->create([

@@ -15,7 +15,7 @@
         <a href="{{route('evolve.experiments.index')}}" class="text-xl font-bold text-emerald-700">Evolve</a>
         <nav>
             <ul class="flex space-x-4">
-                <li><a href="/" class="text-gray-600 hover:text-blue-600">Return to Site</a></li>
+                <li><a href="/" class="text-gray-600 hover:text-green-600">Return to Site</a></li>
             </ul>
         </nav>
     </div>
@@ -24,17 +24,37 @@
 <!-- Main Content -->
 <main class="container mx-auto px-4 py-8">
     <h2 class="text-3xl font-bold text-emerald-900">Active Experiments</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-5">
+    <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-5">
         @forelse ($activeExperiments as $experiment)
-            <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-lg font-bold mb-4">{{$experiment->name}}</h2>
-                <p class="text-gray-600">{{$experiment->variantLogs->count()}} Variants</p>
-                <a href="{{route('evolve.experiments.show', $experiment)}}" class="inline-block mt-4 text-emerald-600 hover:underline">View Experiment →</a>
-            </div>
+            <li class="col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow">
+                <div class="flex w-full items-center justify-between space-x-6 p-6">
+                    <div class="flex-1 truncate">
+                        <div class="flex items-center space-x-3">
+                            <h3 class="truncate text-xl font-medium text-gray-900">{{$experiment->name}}</h3>
+                        </div>
+                        <a href="{{route('evolve.experiments.show', $experiment)}}" class="inline-block mt-1 text-sm text-emerald-600 hover:underline">View Experiment →</a>
+
+                    </div>
+                </div>
+                <div>
+                    <div class="-mt-px flex divide-x divide-gray-200">
+                        <div class="flex w-0 flex-1">
+                            <span class="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-gray-900">
+                                {{number_format($experiment->total_views)}} <span class="text-xs text-gray-600">Views</span>
+                            </span>
+                        </div>
+                        <div class="-ml-px flex w-0 flex-1">
+                            <span class="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-gray-900">
+                                {{$experiment->variantLogs->count()}} <span class="text-xs text-gray-600">Variants</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </li>
         @empty
             <p> 'No Active Experiments' </p>
         @endforelse
-    </div>
+    </ul>
 
     @if($inactiveExperiments->count())
         <h2 class="text-2xl font-bold text-emerald-900 mt-10">Paused Experiments</h2>

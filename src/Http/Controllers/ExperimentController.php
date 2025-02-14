@@ -22,7 +22,25 @@ class ExperimentController extends Controller
     {
         abort_unless(Gate::allows('viewEvolveAdminPanel'), 403);
 
-        return view('evolve::experiments.show', compact('experiment'));
+        $conversionNames = $experiment->variantLogs->flatMap(function ($variant) {
+            return array_keys($variant->view->conversions ?? []);
+        })->unique();
+
+        $maxConversionRates = [];
+        foreach($conversionNames as $conversionName) {
+            $maxRate = 0;
+            $maxRateVariant = null;
+            foreach($experiment->variantLogs as $variant) {
+                $rate = $variant->view ? $variant->view->conversionRate($conversionName) : 0;
+                if ($rate > $maxRate) {
+                    $maxRate = $rate;
+                    $maxRateVariant = $variant->id;
+                }
+            }
+            $maxConversionRates[$conversionName] = $maxRateVariant;
+        }
+
+        return view('evolve::experiments.show', compact('experiment', 'maxConversionRates'));
     }
 
     public function update(Request $request, Evolve $experiment)

@@ -15,7 +15,7 @@
         <a href="{{route('evolve.experiments.index')}}" class="text-xl font-bold text-emerald-700">Evolve</a>
         <nav>
             <ul class="flex space-x-4">
-                <li><a href="/" class="text-gray-600 hover:text-blue-600">Return to Site</a></li>
+                <li><a href="/" class="text-gray-600 hover:text-green-600">Return to Site</a></li>
             </ul>
         </nav>
     </div>
@@ -65,14 +65,13 @@
                                         <textarea class="w-full h-full text-xs" rows="5">{{$variant->content}}</textarea>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view?->views}}</td>
-
                                     <!-- Dynamic Conversion Data -->
                                     @foreach($conversionNames as $conversionName)
-                                        <td class="whitespace-nowrap px-3 py-4">
-                                            <ul>
-                                                <li class="font-medium">{{ $variant->view->conversions[$conversionName] ?? 0 }} <span class="text-xs text-gray-500">Conversions</span></li>
-                                                <li class="text-sm">{{ $variant->view?->conversionRate($conversionName) }}% <span class="text-xs text-gray-500">Rate</span></li>
-                                                <li class="text-sm">{{ $variant->view?->conversionRange($conversionName) }} <span class="text-xs text-gray-500">Range</span></li>
+                                        <td class="whitespace-nowrap px-3 py-4 {{$maxConversionRates[$conversionName] == $variant->id?'bg-green-50':''}}">
+                                            <ul class="space-y-2">
+                                                <li class="font-medium text-lg flex flex-col">{{ $variant->view->conversions[$conversionName] ?? 0 }} <span class="text-xs text-gray-500">Conversions</span></li>
+                                                <li class="font-medium text-lg flex flex-col">{{ $variant->view?->conversionRate($conversionName) }}% <span class="text-xs text-gray-500">Rate</span></li>
+                                                <li class="text-sm flex flex-col">{{ $variant->view?->conversionRange($conversionName) }} <span class="text-xs text-gray-500">Range</span></li>
                                             </ul>
                                         </td>
                                     @endforeach
