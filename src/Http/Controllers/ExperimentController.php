@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use MadLab\Evolve\Models\Evolve;
+use MadLab\Evolve\Models\Variant;
 
 class ExperimentController extends Controller
 {
@@ -28,14 +29,29 @@ class ExperimentController extends Controller
 
     public function update(Request $request, Evolve $experiment)
     {
-        if($request->action == 'enable') {
-            $experiment->is_active = true;
-            $experiment->save();
+        switch ($request->action) {
+            case 'enable':
+                $experiment->is_active = true;
+                $experiment->save();
+                break;
+            case 'disable':
+                $experiment->is_active = false;
+                $experiment->save();
+                break;
+            case 'deleteVariant':
+                Variant::destroy($request->variant_id);
+                return redirect()->route('evolve.experiments.show', $experiment);
+                break;
+            case 'restoreVariant':
+                $variant = Variant::withTrashed()->find($request->variant_id);
+                if ($variant) {
+                    $variant->restore();
+                }
+                return redirect()->route('evolve.experiments.show', $experiment);
+                break;
+
         }
-        else{
-            $experiment->is_active = false;
-            $experiment->save();
-        }
+
         return redirect()->route('evolve.experiments.index');
     }
 }

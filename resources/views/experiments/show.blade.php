@@ -57,6 +57,11 @@
                                 <tr>
                                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 lg:pl-8 overflow-scroll">
                                         <textarea class="w-full h-full text-xs" rows="5">{{$variant->content}}</textarea>
+                                        <form method="post" action="{{route('evolve.experiments.update', $experiment)}}" class="mt-2">
+                                            <input type="hidden" name="action" value="deleteVariant">
+                                            <input type="hidden" name="variant_id" value="{{$variant->id}}">
+                                            <button type="submit" class="inline-block mt-1 text-sm text-emerald-600 hover:underline">Delete Variant</button>
+                                        </form>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view?->views}}</td>
                                     <!-- Dynamic Conversion Data -->
@@ -77,6 +82,43 @@
                 </div>
             </div>
         </div>
+
+        @if($experiment->variantLogs()->onlyTrashed()->count())
+            <h2 class="text-2xl font-bold text-emerald-900 mt-10">Deleted Variants</h2>
+            <div class="px-4 sm:px-6 lg:px-8">
+                <div class="mt-8 flow-root">
+                    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8 bg-white shadow rounded-lg">
+                        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                            <table class="min-w-full divide-y divide-gray-300">
+                                <thead>
+                                <tr>
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
+                                    <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                                        <span class="sr-only">Edit</span>
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                @foreach ($experiment->variantLogs()->onlyTrashed()->get() as $variant)
+                                    <tr>
+                                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{$variant->content}}</td>
+                                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+
+                                            <form method="post" action="{{route('evolve.experiments.update', $experiment)}}" class="mt-2">
+                                                <input type="hidden" name="action" value="restoreVariant">
+                                                <input type="hidden" name="variant_id" value="{{$variant->id}}">
+                                                <button type="submit" class="inline-block mt-1 text-sm text-emerald-600 hover:underline">Restore</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 </main>
 </body>
