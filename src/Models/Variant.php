@@ -23,4 +23,15 @@ class Variant extends Model
     public function view(){
         return $this->hasOne(View::class, 'variant_id', 'id');
     }
+
+    public function experiment()
+    {
+        return $this->belongsTo(Evolve::class);
+    }
+
+    public function confidenceIsBest($conversionName)
+    {
+        return round($this->experiment->getConfidenceLevel($conversionName, $this->id) * 100, 2);
+    }
+
 }

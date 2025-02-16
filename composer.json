@@ -29,5 +29,8 @@
         "MadLab\\Evolve\\EvolveServiceProvider"
       ]
     }
+  },
+  "require": {
+    "markrogoyski/math-php": "^2.11"
   }
 }

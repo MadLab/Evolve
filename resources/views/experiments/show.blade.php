@@ -47,13 +47,7 @@
                                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Views</th>
 
                                 <!-- Dynamic Conversion Columns -->
-                                @php
-                                    $conversionNames = $experiment->variantLogs->flatMap(function ($variant) {
-                                        return array_keys($variant->view->conversions ?? []);
-                                    })->unique(); // Collect all unique conversion names
-                                @endphp
-
-                                @foreach($conversionNames as $conversionName)
+                                @foreach($experiment->conversionNames() as $conversionName)
                                     <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">{{ ucfirst($conversionName) }}</th>
                                 @endforeach
                             </tr>
@@ -66,8 +60,8 @@
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{$variant->view?->views}}</td>
                                     <!-- Dynamic Conversion Data -->
-                                    @foreach($conversionNames as $conversionName)
-                                        <td class="whitespace-nowrap px-3 py-4 {{$maxConversionRates[$conversionName] == $variant->id?'bg-green-50':''}}">
+                                    @foreach($experiment->conversionNames() as $conversionName)
+                                        <td class="whitespace-nowrap px-3 py-4 {{$experiment->maxRate($conversionName) == $variant->id?'bg-green-50':''}}">
                                             <ul class="space-y-2">
                                                 <li class="font-medium text-lg flex flex-col">{{ $variant->view->conversions[$conversionName] ?? 0 }} <span class="text-xs text-gray-500">Conversions</span></li>
                                                 <li class="font-medium text-lg flex flex-col">{{ $variant->view?->conversionRate($conversionName) }}% <span class="text-xs text-gray-500">Rate</span></li>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cookie;
+use MathPHP\Probability\Distribution\Continuous\Beta;
 
 class Evolve extends Model
 {
@@ -16,6 +17,9 @@ class Evolve extends Model
 
     private static $cookieData;
     private static $resolvedExperiments = [];
+    protected $conversionNames;
+    protected $maxConversionRates;
+    protected $confidenceLevels;
 
 
 
@@ -175,5 +179,95 @@ class Evolve extends Model
         self::$cookieData = array_replace(self::getCookieData(), $newData);
 
         Cookie::queue('evolve', json_encode(self::$cookieData));
+    }
+
+    public function conversionNames()
+    {
+        if(!isset($this->conversionNames)){
+            $this->conversionNames = $this->variantLogs->flatMap(function ($variant) {
+                return array_keys($variant->view->conversions ?? []);
+            })->unique();
+        }
+        return $this->conversionNames;
+    }
+
+    public function maxRate($variantName){
+        if(!isset($this->maxConversionRates)){
+            foreach($this->conversionNames() as $conversionName) {
+                $maxRate = 0;
+                $maxRateVariant = null;
+                foreach($this->variantLogs as $variant) {
+                    $rate = $variant->view ? $variant->view->conversionRate($conversionName) : 0;
+                    if ($rate > $maxRate) {
+                        $maxRate = $rate;
+                        $maxRateVariant = $variant->id;
+                    }
+                }
+                $this->maxConversionRates[$conversionName] = $maxRateVariant;
+            }
+        }
+        return $this->maxConversionRates[$variantName] ?? null;
+    }
+
+
+
+    public function calculateConfidenceLevels(int $iterations = 10000)
+    {
+        if(!isset($this->confidenceLevels)){
+            $variantCount = count($this->variantLogs);
+            $conversionNames = $this->conversionNames();
+
+            foreach($conversionNames as $conversionName){
+                // Initialize win counts for each variant.
+                $wins = [];
+
+                // Calculate Beta parameters for each variant.
+                // We assume a uniform prior: Beta(1,1)
+                // Thus, for each variant:
+                //   α = conversions + 1
+                //   β = (views - conversions) + 1
+                $params = [];
+                foreach ($this->variantLogs as $variant) {
+                    $wins[$variant->id] = 0;
+
+                    $conversions = $variant?->view?->conversions[$conversionName]??0;
+                    $views = $variant->view->views;
+                    $alpha = $conversions + 1;
+                    $beta = ($views - $conversions) + 1;
+                    $params[$variant->id] = ['alpha' => $alpha, 'beta' => $beta];
+                }
+
+                // Run the Monte Carlo simulation.
+                for ($i = 0; $i < $iterations; $i++) {
+                    $samples = [];
+                    // Draw a sample conversion rate for each variant.
+                    foreach ($params as $variant => $p) {
+                        // Use MathPHP's Beta sampler.
+                        $samples[$variant] = (new Beta($p['alpha'], $p['beta']))->rand();
+                    }
+                    // Find the variant with the highest sampled conversion rate.
+                    $maxSample = max($samples);
+                    $winningIndex = array_search($maxSample, $samples);
+                    $wins[$winningIndex]++;
+                }
+
+                // Calculate win probabilities for each variant.
+                $probabilities = [];
+                foreach ($wins as $index => $winCount) {
+                    $probabilities[$index] = $winCount / $iterations;
+                }
+
+                // Determine which variant is most likely to be best.
+                $bestVariantIndex = array_keys($probabilities, max($probabilities))[0];
+
+                $this->confidenceLevels[$conversionName] = $probabilities;
+            }
+        }
+        return $this->confidenceLevels;
+
+    }
+
+    public function getConfidenceLevel($conversionName, $variantId){
+        return $this->calculateConfidenceLevels()[$conversionName][$variantId];
     }
 }
