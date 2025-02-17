@@ -49,7 +49,7 @@ class Evolve extends Model
         $experiment->syncVariants($variants);
 
         // Call getUserVariant to resolve the variant and cache the value
-        $value = $experiment->getUserVariant();
+        $value = $experiment->getUserVariant()->content;
         self::$resolvedExperiments[$name] = $value;
 
         return $value;
@@ -63,7 +63,7 @@ class Evolve extends Model
 
         if(is_null($this->getCookieData($this->id))){
             $this->updateCookie([
-                $this->id =>$this->variants->keys()->random()
+                $this->id =>$this->variantLogs->random()->hash
             ]);
         }
 
@@ -72,11 +72,12 @@ class Evolve extends Model
 
         if (! app()->environment('production')) {
             // Find the current key's index in the collection
-            $keys = $this->variants->keys();
+            $keys = $this->variantLogs->pluck('hash');
             $currentIndex = $keys->search($this->getCookieData($this->id)); // Find the index of the current key
 
             // Determine the next index (loop back to the start if at the end)
             $nextIndex = ($currentIndex + 1) % $keys->count();
+
 
             // Get the next key and its associated value
             $currentHash = $keys->get($nextIndex);
@@ -84,7 +85,7 @@ class Evolve extends Model
                 $this->id => $currentHash
             ]);
         }
-        $currentValue = $this->variants->get($currentHash);
+        $currentValue = $this->variantLogs()->where('hash', $currentHash)->get('content')->first();
         $this->incrementView($currentHash, $currentValue);
 
         return $currentValue;
@@ -92,10 +93,20 @@ class Evolve extends Model
 
     public function syncVariants(array $strings)
     {
-        // Compute the hashes for the provided strings
-        $this->variants = collect($strings)->mapWithKeys(function ($string) {
+        // Get existing variant hashes from the database
+        $existingHashes = $this->variantLogs()->withTrashed()->pluck('hash');
+
+        // Compute new variants, only including ones that aren't already in the database
+        $newVariants = collect($strings)->mapWithKeys(function ($string) {
             return [md5($string) => $string];
-        });
+        })->reject(fn($value, $hash) => $existingHashes->contains($hash));
+
+        foreach($newVariants as $hash => $value){
+            $this->variantLogs()->create([
+                'hash' => $hash,
+                'content' => $value,
+            ]);
+        }
     }
 
     public function incrementView($key, $value)
