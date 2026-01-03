@@ -19,26 +19,27 @@ class Evolve extends Component
 
     public function render()
     {
-
         return function (array $data) {
             $this->data = $data;
-            $variants = [];
+            $slots = collect($data['__laravel_slots']);
 
-
-            foreach($data['__laravel_slots'] as $key=>$val){
-                if($key !== '__default' || $val->isNotEmpty()){
-                    $variants[] = $val->toHtml();
-                }
-            }
+            // Get slot names (excluding __default) as variant names
+            $variantNames = $slots->keys()->filter(fn($key) => $key !== '__default')->values()->all();
 
             $experiment = EvolveExperiment::firstOrCreate([
                 'name' => $this->test,
             ], [
                 'is_active' => true
             ]);
-            if($experiment->is_active){
-                $experiment->syncVariants($variants);
-                return (string) $experiment->getUserVariant();
+
+            if ($experiment->is_active && count($variantNames) > 0) {
+                $experiment->syncVariants($variantNames);
+                $selectedVariant = (string) $experiment->getUserVariant();
+
+                // Return the HTML for the selected slot
+                if ($slots->has($selectedVariant)) {
+                    return $slots->get($selectedVariant)->toHtml();
+                }
             }
 
             return $this->getDefaultVariant();
