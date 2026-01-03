@@ -38,7 +38,7 @@ class Evolve extends Component
             ]);
             if($experiment->is_active){
                 $experiment->syncVariants($variants);
-                return $experiment->getUserVariant();
+                return (string) $experiment->getUserVariant();
             }
 
             return $this->getDefaultVariant();

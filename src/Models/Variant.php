@@ -35,4 +35,8 @@ class Variant extends Model
         return round($this->experiment->getConfidenceLevel($conversionName, $this->id) * 100, 2);
     }
 
+    public function __toString(): string
+    {
+        return $this->content ?? '';
+    }
 }
