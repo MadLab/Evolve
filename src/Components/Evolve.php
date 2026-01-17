@@ -1,15 +1,14 @@
 <?php
 
-
 namespace MadLab\Evolve\Components;
 
 use Illuminate\View\Component;
-use Illuminate\View\ComponentSlot;
 use MadLab\Evolve\Models\Evolve as EvolveExperiment;
 
 class Evolve extends Component
 {
     public string $test;
+
     public array $data;
 
     public function __construct(string $test)
@@ -24,12 +23,12 @@ class Evolve extends Component
             $slots = collect($data['__laravel_slots']);
 
             // Get slot names (excluding __default) as variant names
-            $variantNames = $slots->keys()->filter(fn($key) => $key !== '__default')->values()->all();
+            $variantNames = $slots->keys()->filter(fn ($key) => $key !== '__default')->values()->all();
 
             $experiment = EvolveExperiment::firstOrCreate([
                 'name' => $this->test,
             ], [
-                'is_active' => true
+                'is_active' => true,
             ]);
 
             if ($experiment->is_active && count($variantNames) > 0) {
@@ -58,6 +57,6 @@ class Evolve extends Component
             return $slots->get('default')->toHtml();
         }
 
-        return optional($slots->first(fn($slot) => optional($slot)->isNotEmpty()))->toHtml() ?? '';
+        return optional($slots->first(fn ($slot) => optional($slot)->isNotEmpty()))->toHtml() ?? '';
     }
 }

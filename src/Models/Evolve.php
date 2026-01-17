@@ -2,29 +2,38 @@
 
 namespace MadLab\Evolve\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cookie;
+use MadLab\Evolve\Services\BotDetector;
 use MathPHP\Probability\Distribution\Continuous\Beta;
 
 class Evolve extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     protected $table = 'evolve_experiments';
+
     protected $guarded = [];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+        'started_at' => 'datetime',
+        'stopped_at' => 'datetime',
+        'last_accessed_at' => 'datetime',
+    ];
+
     private static $cookieData;
+
     private static $resolvedExperiments = [];
+
     protected $conversionNames;
+
     protected $maxConversionRates;
+
     protected $confidenceLevels;
-
-
-
-    public $variants;
-
 
     public static function getValue($name, $variants)
     {
@@ -34,15 +43,19 @@ class Evolve extends Model
         }
 
         $experiment = self::where('name', $name)->first();
-        if (!$experiment) {
+        if (! $experiment) {
             $experiment = self::create([
                 'name' => $name,
                 'is_active' => true,
             ]);
         }
 
-        if (!$experiment->is_active) {
+        // Track that this experiment is still being accessed (even if paused)
+        $experiment->touchLastAccessed();
+
+        if (! $experiment->is_active) {
             self::$resolvedExperiments[$name] = null; // Cache the null result
+
             return null;
         }
 
@@ -55,20 +68,19 @@ class Evolve extends Model
         return $value;
     }
 
-
-    public function getUserVariant(){
-        if(!$this->is_active){
+    public function getUserVariant()
+    {
+        if (! $this->is_active) {
             return $this->defaultVariant();
         }
 
-        if(is_null($this->getCookieData($this->id))){
+        if (is_null($this->getCookieData($this->id))) {
             $this->updateCookie([
-                $this->id =>$this->variantLogs->random()->hash
+                $this->id => $this->variantLogs->random()->hash,
             ]);
         }
 
         $currentHash = $this->getCookieData($this->id);
-
 
         if (! app()->environment('production')) {
             // Find the current key's index in the collection
@@ -78,11 +90,10 @@ class Evolve extends Model
             // Determine the next index (loop back to the start if at the end)
             $nextIndex = ($currentIndex + 1) % $keys->count();
 
-
             // Get the next key and its associated value
             $currentHash = $keys->get($nextIndex);
             $this->updateCookie([
-                $this->id => $currentHash
+                $this->id => $currentHash,
             ]);
         }
         $currentValue = $this->variantLogs()->where('hash', $currentHash)->get('content')->first();
@@ -91,17 +102,15 @@ class Evolve extends Model
         return $currentValue;
     }
 
-    public function syncVariants(array $strings)
+    public function syncVariants(array $strings): void
     {
-        // Get existing variant hashes from the database
         $existingHashes = $this->variantLogs()->withTrashed()->pluck('hash');
 
-        // Compute new variants, only including ones that aren't already in the database
-        $newVariants = collect($strings)->mapWithKeys(function ($string) {
-            return [md5($string) => $string];
-        })->reject(fn($value, $hash) => $existingHashes->contains($hash));
+        $newVariants = collect($strings)
+            ->mapWithKeys(fn ($string) => [md5($string) => $string])
+            ->reject(fn ($value, $hash) => $existingHashes->contains($hash));
 
-        foreach($newVariants as $hash => $value){
+        foreach ($newVariants as $hash => $value) {
             $this->variantLogs()->create([
                 'hash' => $hash,
                 'content' => $value,
@@ -109,65 +118,56 @@ class Evolve extends Model
         }
     }
 
-    public function incrementView($key, $value)
+    public function incrementView(string $key, string $value): void
     {
         $this->increment('total_views');
-        $variant = $this->variantLogs()->where('hash', $key)->first();
-        if (!$variant) {
-            $variant = $this->variantLogs()->create([
-                'hash' => $key,
-                'content' => $value,
-            ]);
 
-        }
-        $variant->incrementView();
+        /** @var Variant $variant */
+        $variant = $this->variantLogs()->firstOrCreate(
+            ['hash' => $key],
+            ['content' => $value]
+        );
+
+        $isBot = app(BotDetector::class)->isBot();
+
+        $variant->incrementView($isBot);
+        DailyStat::recordView($variant, $isBot);
     }
 
-    public static function recordConversion(string $conversionName)
+    public static function recordConversion(string $conversionName): void
     {
-        // Get all cookie data
         $cookieData = self::getCookieData();
 
-        // Check if there's any cookie data
-        if (!$cookieData || empty($cookieData)) {
-            return false;
+        if (empty($cookieData)) {
+            return;
         }
 
-        // Loop through the cookie data (each experiment)
         foreach ($cookieData as $experimentId => $variantHash) {
-            // Find the active experiment by its ID
             $experiment = self::find($experimentId);
 
-
-            // If the experiment exists and is active, increment its conversion
-            if ($experiment && $experiment->is_active) {
+            if ($experiment?->is_active) {
                 $experiment->incrementConversion($variantHash, $conversionName);
             }
         }
     }
 
-    public function incrementConversion($variantHash, $conversionName)
+    public function incrementConversion(string $variantHash, string $conversionName): void
     {
-        // Find the variant by hash
+        /** @var Variant|null $variant */
         $variant = $this->variantLogs()->where('hash', $variantHash)->first();
 
-        if ($variant) {
-            // Get the current conversions data from the 'conversions' JSON field
-
-            $currentConversions = $variant->view->conversions ?? [];
-
-            if(is_null($currentConversions) || !is_array($currentConversions)){
-                $currentConversions = [];
-            }
-            // Increment the specific conversion count or initialize it
-            $currentConversions[$conversionName] = ($currentConversions[$conversionName] ?? 0) + 1;
-
-            // Update the 'conversions' field in the database
-            if($variant->view){
-                $variant->view->update(['conversions' => $currentConversions]);
-            }
+        if (! $variant?->view) {
+            return;
         }
+
+        $currentConversions = $variant->view->conversions ?? [];
+        $currentConversions[$conversionName] = ($currentConversions[$conversionName] ?? 0) + 1;
+
+        $variant->view->update(['conversions' => $currentConversions]);
+
+        DailyStat::recordConversion($variant, $conversionName);
     }
+
     public function variantLogs(): HasMany
     {
         return $this->hasMany(Variant::class, 'experiment_id', 'id');
@@ -179,106 +179,179 @@ class Evolve extends Model
             self::$cookieData = json_decode(request()->cookie('evolve', '{}'), true);
         }
 
-        if(!is_null($key)){
+        if (! is_null($key)) {
             return self::$cookieData[$key] ?? null;
         }
+
         return self::$cookieData;
     }
 
-    public function updateCookie(array $newData)
+    public function updateCookie(array $newData): void
     {
         self::$cookieData = array_replace(self::getCookieData(), $newData);
 
         Cookie::queue('evolve', json_encode(self::$cookieData));
     }
 
-    public function conversionNames()
+    public function conversionNames(): \Illuminate\Support\Collection
     {
-        if(!isset($this->conversionNames)){
-            $this->conversionNames = $this->variantLogs->flatMap(function ($variant) {
-                return array_keys($variant->view->conversions ?? []);
-            })->unique();
+        if (! isset($this->conversionNames)) {
+            $this->conversionNames = $this->variantLogs
+                ->flatMap(fn ($variant) => array_keys($variant->view->conversions ?? []))
+                ->unique();
         }
+
         return $this->conversionNames;
     }
 
-    public function maxRate($variantName){
-        if(!isset($this->maxConversionRates)){
-            foreach($this->conversionNames() as $conversionName) {
-                $maxRate = 0;
-                $maxRateVariant = null;
-                foreach($this->variantLogs as $variant) {
-                    $rate = $variant->view ? $variant->view->conversionRate($conversionName) : 0;
-                    if ($rate > $maxRate) {
-                        $maxRate = $rate;
-                        $maxRateVariant = $variant->id;
-                    }
-                }
-                $this->maxConversionRates[$conversionName] = $maxRateVariant;
-            }
-        }
-        return $this->maxConversionRates[$variantName] ?? null;
-    }
-
-
-
-    public function calculateConfidenceLevels(int $iterations = 10000)
+    public function maxRate(string $conversionName): ?int
     {
-        if(!isset($this->confidenceLevels)){
-            $variantCount = count($this->variantLogs);
-            $conversionNames = $this->conversionNames();
+        if (! isset($this->maxConversionRates)) {
+            foreach ($this->conversionNames() as $name) {
+                $bestVariant = $this->variantLogs
+                    ->filter(fn ($variant) => $variant->view)
+                    ->sortByDesc(fn ($variant) => $variant->view->conversionRate($name))
+                    ->first();
 
-            foreach($conversionNames as $conversionName){
-                // Initialize win counts for each variant.
-                $wins = [];
-
-                // Calculate Beta parameters for each variant.
-                // We assume a uniform prior: Beta(1,1)
-                // Thus, for each variant:
-                //   α = conversions + 1
-                //   β = (views - conversions) + 1
-                $params = [];
-                foreach ($this->variantLogs as $variant) {
-                    $wins[$variant->id] = 0;
-
-                    $conversions = $variant?->view?->conversions[$conversionName]??0;
-                    $views = $variant->view->views;
-                    $alpha = $conversions + 1;
-                    $beta = ($views - $conversions) + 1;
-                    $params[$variant->id] = ['alpha' => $alpha, 'beta' => $beta];
-                }
-
-                // Run the Monte Carlo simulation.
-                for ($i = 0; $i < $iterations; $i++) {
-                    $samples = [];
-                    // Draw a sample conversion rate for each variant.
-                    foreach ($params as $variant => $p) {
-                        // Use MathPHP's Beta sampler.
-                        $samples[$variant] = (new Beta($p['alpha'], $p['beta']))->rand();
-                    }
-                    // Find the variant with the highest sampled conversion rate.
-                    $maxSample = max($samples);
-                    $winningIndex = array_search($maxSample, $samples);
-                    $wins[$winningIndex]++;
-                }
-
-                // Calculate win probabilities for each variant.
-                $probabilities = [];
-                foreach ($wins as $index => $winCount) {
-                    $probabilities[$index] = $winCount / $iterations;
-                }
-
-                // Determine which variant is most likely to be best.
-                $bestVariantIndex = array_keys($probabilities, max($probabilities))[0];
-
-                $this->confidenceLevels[$conversionName] = $probabilities;
+                $this->maxConversionRates[$name] = $bestVariant?->id;
             }
         }
-        return $this->confidenceLevels;
 
+        return $this->maxConversionRates[$conversionName] ?? null;
     }
 
-    public function getConfidenceLevel($conversionName, $variantId){
+    public function calculateConfidenceLevels(int $iterations = 1000): ?array
+    {
+        if (isset($this->confidenceLevels)) {
+            return $this->confidenceLevels;
+        }
+
+        foreach ($this->conversionNames() as $conversionName) {
+            $wins = [];
+            $params = [];
+
+            // Calculate Beta parameters for each variant using uniform prior: Beta(1,1)
+            // α = conversions + 1, β = (views - conversions) + 1
+            foreach ($this->variantLogs as $variant) {
+                $wins[$variant->id] = 0;
+                $conversions = $variant?->view?->conversions[$conversionName] ?? 0;
+                $views = $variant->view->views ?? 0;
+                $params[$variant->id] = [
+                    'alpha' => $conversions + 1,
+                    'beta' => ($views - $conversions) + 1,
+                ];
+            }
+
+            // Run Monte Carlo simulation
+            for ($i = 0; $i < $iterations; $i++) {
+                $samples = [];
+                foreach ($params as $variantId => $p) {
+                    $samples[$variantId] = (new Beta($p['alpha'], $p['beta']))->rand();
+                }
+                $wins[array_search(max($samples), $samples)]++;
+            }
+
+            // Calculate win probabilities
+            $this->confidenceLevels[$conversionName] = array_map(
+                fn ($winCount) => $winCount / $iterations,
+                $wins
+            );
+        }
+
+        return $this->confidenceLevels;
+    }
+
+    public function getConfidenceLevel(string $conversionName, int $variantId): float
+    {
         return $this->calculateConfidenceLevels()[$conversionName][$variantId];
+    }
+
+    public function dailyStats(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            DailyStat::class,
+            Variant::class,
+            'experiment_id',
+            'variant_id',
+            'id',
+            'id'
+        );
+    }
+
+    public function toArray()
+    {
+        $array = parent::toArray();
+
+        // Load variant_logs with their views if not already loaded
+        if (! $this->relationLoaded('variantLogs')) {
+            $this->load('variantLogs.view');
+        }
+
+        $array['variant_logs'] = $this->variantLogs->map(function ($variant) {
+            $variantArray = $variant->toArray();
+            $variantArray['view'] = $variant->view ? $variant->view->toArray() : null;
+
+            // Add range calculations for each conversion
+            if ($variant->view) {
+                $variantArray['view']['range'] = [];
+                foreach ($this->conversionNames() as $conversionName) {
+                    $variantArray['view']['range'][$conversionName] = $variant->view->conversionRange($conversionName);
+                }
+            }
+
+            return $variantArray;
+        })->toArray();
+
+        $array['conversion_names'] = $this->conversionNames()->values()->toArray();
+
+        // Confidence levels are expensive to calculate (Monte Carlo simulation)
+        // Only include if explicitly requested via includeConfidence()
+        $array['confidence_levels'] = $this->shouldIncludeConfidence ? $this->calculateConfidenceLevels() : [];
+
+        // Include deletion safety info
+        $array['is_still_in_use'] = $this->isStillInUse();
+        $array['can_be_deleted'] = $this->canBeDeleted();
+
+        return $array;
+    }
+
+    protected bool $shouldIncludeConfidence = false;
+
+    public function includeConfidence(): static
+    {
+        $this->shouldIncludeConfidence = true;
+
+        return $this;
+    }
+
+    /**
+     * Update last_accessed_at timestamp (throttled to once per minute to reduce DB writes)
+     */
+    public function touchLastAccessed(): void
+    {
+        // Only update if it's been more than a minute since last update
+        if (! $this->last_accessed_at || $this->last_accessed_at->diffInMinutes(now()) >= 1) {
+            $this->update(['last_accessed_at' => now()]);
+        }
+    }
+
+    /**
+     * Check if this experiment is still being accessed by site code
+     */
+    public function isStillInUse(int $withinHours = 24): bool
+    {
+        if (! $this->last_accessed_at) {
+            return false;
+        }
+
+        return $this->last_accessed_at->diffInHours(now()) < $withinHours;
+    }
+
+    /**
+     * Check if this experiment can be safely deleted
+     */
+    public function canBeDeleted(): bool
+    {
+        return ! $this->is_active && ! $this->isStillInUse();
     }
 }

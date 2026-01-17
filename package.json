@@ -1,0 +1,24 @@
+{
+  "name": "evolve",
+  "version": "1.0.0",
+  "description": "Laravel A/B Testing Software",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@inertiajs/vue3": "^2.0.3",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "chart.js": "^4.4.7",
+    "vite": "^6.1.1",
+    "vue": "^3.5.13",
+    "vue-chartjs": "^5.3.2"
+  }
+}
