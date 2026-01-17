@@ -8,6 +8,6 @@
 </head>
 <body class="bg-gray-100 text-emerald-950">
 <div id="app" data-page="{{ json_encode($page) }}"></div>
-<script src="{{ asset('vendor/evolve/evolve.js') }}"></script>
+<script src="{{ route('evolve.assets.js') }}"></script>
 </body>
 </html>

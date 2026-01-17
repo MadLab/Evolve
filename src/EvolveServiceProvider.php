@@ -28,10 +28,6 @@ class EvolveServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/config.php' => config_path('evolve.php'),
             ], 'evolve-config');
-
-            $this->publishes([
-                __DIR__.'/../dist/evolve.js' => public_path('vendor/evolve/evolve.js'),
-            ], 'evolve-assets');
         }
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
