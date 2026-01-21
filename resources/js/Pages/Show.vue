@@ -137,12 +137,7 @@
 
         <!-- Conversion Logs Section -->
         <div class="mt-10">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-bold text-emerald-900">Recent Conversion Logs</h2>
-            <span v-if="!conversionLoggingEnabled" class="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-              Logging disabled - set EVOLVE_LOG_CONVERSIONS=true to enable
-            </span>
-          </div>
+          <h2 class="text-2xl font-bold text-emerald-900 mb-4">Recent Conversion Logs</h2>
           <div v-if="conversionLogs.length > 0" class="overflow-x-auto bg-white shadow rounded-lg">
             <table class="min-w-full divide-y divide-gray-300">
               <thead class="bg-gray-50">
@@ -250,10 +245,6 @@ const props = defineProps({
   conversionLogs: {
     type: Array,
     default: () => [],
-  },
-  conversionLoggingEnabled: {
-    type: Boolean,
-    default: false,
   },
 });
 

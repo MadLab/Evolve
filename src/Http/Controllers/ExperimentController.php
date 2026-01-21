@@ -62,7 +62,6 @@ class ExperimentController extends Controller
             'deletedVariants' => $experiment->variantLogs()->onlyTrashed()->get()->toArray(),
             'dailyStats' => $dailyStats,
             'conversionLogs' => $conversionLogs,
-            'conversionLoggingEnabled' => config('evolve.log_conversions', false),
         ]);
     }
 

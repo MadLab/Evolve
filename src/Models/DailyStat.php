@@ -36,6 +36,19 @@ class DailyStat extends Model
         $stat->update(['conversions' => $conversions]);
     }
 
+    public static function removeConversion(Variant $variant, string $conversionName): void
+    {
+        $stat = static::getOrCreateTodaysStat($variant);
+
+        $conversions = $stat->conversions ?? [];
+        $currentCount = $conversions[$conversionName] ?? 0;
+
+        if ($currentCount > 0) {
+            $conversions[$conversionName] = $currentCount - 1;
+            $stat->update(['conversions' => $conversions]);
+        }
+    }
+
     protected static function getOrCreateTodaysStat(Variant $variant): self
     {
         return static::firstOrCreate(

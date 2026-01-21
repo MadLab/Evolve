@@ -167,14 +167,66 @@ class Evolve extends Model
 
         DailyStat::recordConversion($variant, $conversionName);
 
-        if (config('evolve.log_conversions')) {
+        if ($model) {
             ConversionLog::create([
                 'variant_id' => $variant->id,
                 'conversion_name' => $conversionName,
-                'loggable_type' => $model ? $model->getMorphClass() : null,
-                'loggable_id' => $model?->getKey(),
+                'loggable_type' => $model->getMorphClass(),
+                'loggable_id' => $model->getKey(),
             ]);
         }
+    }
+
+    public static function removeConversion(string $conversionName, ?Model $model = null): void
+    {
+        $cookieData = self::getCookieData();
+
+        if (empty($cookieData)) {
+            return;
+        }
+
+        foreach ($cookieData as $experimentId => $variantHash) {
+            $experiment = self::find($experimentId);
+
+            if ($experiment?->is_active) {
+                $experiment->decrementConversion($variantHash, $conversionName, $model);
+            }
+        }
+    }
+
+    public function decrementConversion(string $variantHash, string $conversionName, ?Model $model = null): void
+    {
+        if (! $model) {
+            return;
+        }
+
+        /** @var Variant|null $variant */
+        $variant = $this->variantLogs()->where('hash', $variantHash)->first();
+
+        if (! $variant?->view) {
+            return;
+        }
+
+        $log = ConversionLog::where('variant_id', $variant->id)
+            ->where('conversion_name', $conversionName)
+            ->where('loggable_type', $model->getMorphClass())
+            ->where('loggable_id', $model->getKey())
+            ->first();
+
+        if (! $log) {
+            return;
+        }
+
+        $currentConversions = $variant->view->conversions ?? [];
+        $currentCount = $currentConversions[$conversionName] ?? 0;
+
+        if ($currentCount > 0) {
+            $currentConversions[$conversionName] = $currentCount - 1;
+            $variant->view->update(['conversions' => $currentConversions]);
+            DailyStat::removeConversion($variant, $conversionName);
+        }
+
+        $log->delete();
     }
 
     public function variantLogs(): HasMany

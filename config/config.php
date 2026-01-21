@@ -9,14 +9,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Conversion Logging
+    | Conversion Log Retention
     |--------------------------------------------------------------------------
     |
-    | When enabled, individual conversions are logged with optional model
-    | associations for debugging and auditing purposes.
+    | Conversion logs are automatically created when a model is passed to
+    | recordConversion(). This setting controls how long logs are retained.
     |
     */
-    'log_conversions' => env('EVOLVE_LOG_CONVERSIONS', false),
     'conversion_log_retention_days' => 30,
 
     'bot_detection' => [
