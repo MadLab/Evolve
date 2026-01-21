@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use MadLab\Evolve\Models\ConversionLog;
 use MadLab\Evolve\Models\DailyStat;
 use MadLab\Evolve\Models\Evolve;
 use MadLab\Evolve\Models\Variant;
@@ -42,10 +43,26 @@ class ExperimentController extends Controller
             ])->values()->toArray())
             ->toArray();
 
+        $conversionLogs = ConversionLog::whereIn('variant_id', $variantIds)
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'conversion_name' => $log->conversion_name,
+                'loggable_type' => $log->loggable_type,
+                'loggable_id' => $log->loggable_id,
+                'variant_id' => $log->variant_id,
+                'created_at' => $log->created_at->format('Y-m-d H:i:s'),
+            ])
+            ->toArray();
+
         return Inertia::render('Evolve/Show', [
             'experiment' => $experiment->toArray(),
             'deletedVariants' => $experiment->variantLogs()->onlyTrashed()->get()->toArray(),
             'dailyStats' => $dailyStats,
+            'conversionLogs' => $conversionLogs,
+            'conversionLoggingEnabled' => config('evolve.log_conversions', false),
         ]);
     }
 

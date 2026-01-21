@@ -134,7 +134,7 @@ class Evolve extends Model
         DailyStat::recordView($variant, $isBot);
     }
 
-    public static function recordConversion(string $conversionName): void
+    public static function recordConversion(string $conversionName, ?Model $model = null): void
     {
         $cookieData = self::getCookieData();
 
@@ -146,12 +146,12 @@ class Evolve extends Model
             $experiment = self::find($experimentId);
 
             if ($experiment?->is_active) {
-                $experiment->incrementConversion($variantHash, $conversionName);
+                $experiment->incrementConversion($variantHash, $conversionName, $model);
             }
         }
     }
 
-    public function incrementConversion(string $variantHash, string $conversionName): void
+    public function incrementConversion(string $variantHash, string $conversionName, ?Model $model = null): void
     {
         /** @var Variant|null $variant */
         $variant = $this->variantLogs()->where('hash', $variantHash)->first();
@@ -166,6 +166,15 @@ class Evolve extends Model
         $variant->view->update(['conversions' => $currentConversions]);
 
         DailyStat::recordConversion($variant, $conversionName);
+
+        if (config('evolve.log_conversions')) {
+            ConversionLog::create([
+                'variant_id' => $variant->id,
+                'conversion_name' => $conversionName,
+                'loggable_type' => $model ? $model->getMorphClass() : null,
+                'loggable_id' => $model?->getKey(),
+            ]);
+        }
     }
 
     public function variantLogs(): HasMany

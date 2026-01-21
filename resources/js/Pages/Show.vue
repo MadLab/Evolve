@@ -135,6 +135,41 @@
           </div>
         </div>
 
+        <!-- Conversion Logs Section -->
+        <div class="mt-10">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold text-emerald-900">Recent Conversion Logs</h2>
+            <span v-if="!conversionLoggingEnabled" class="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+              Logging disabled - set EVOLVE_LOG_CONVERSIONS=true to enable
+            </span>
+          </div>
+          <div v-if="conversionLogs.length > 0" class="overflow-x-auto bg-white shadow rounded-lg">
+            <table class="min-w-full divide-y divide-gray-300">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">Conversion</th>
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Variant</th>
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Model Type</th>
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Model ID</th>
+                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr v-for="log in conversionLogs" :key="log.id">
+                  <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">{{ log.conversion_name }}</td>
+                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ getVariantName(log.variant_id) }}</td>
+                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-mono text-xs">{{ log.loggable_type || '-' }}</td>
+                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ log.loggable_id || '-' }}</td>
+                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ log.created_at }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="text-gray-500 text-sm bg-gray-50 rounded-lg p-4">
+            No conversion logs recorded yet.
+          </div>
+        </div>
+
         <!-- Deleted Variants Section -->
         <div v-if="deletedVariants.length > 0">
           <h2 class="text-2xl font-bold text-emerald-900 mt-10">Deleted Variants</h2>
@@ -211,6 +246,14 @@ const props = defineProps({
   dailyStats: {
     type: Object,
     default: () => ({}),
+  },
+  conversionLogs: {
+    type: Array,
+    default: () => [],
+  },
+  conversionLoggingEnabled: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -373,5 +416,12 @@ function maxRate(conversionName) {
     return rate > (max.rate || 0) ? { id: variant.id, rate } : max;
   }, { rate: 0 });
   return maxVariant.id;
+}
+
+function getVariantName(variantId) {
+  const variant = props.experiment.variant_logs.find(v => v.id === variantId);
+  if (!variant) return `ID: ${variantId}`;
+  const content = variant.content || '';
+  return content.length > 30 ? content.substring(0, 30) + '...' : content;
 }
 </script>

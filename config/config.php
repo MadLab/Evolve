@@ -7,6 +7,18 @@ return [
         'default@admin.com',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Conversion Logging
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, individual conversions are logged with optional model
+    | associations for debugging and auditing purposes.
+    |
+    */
+    'log_conversions' => env('EVOLVE_LOG_CONVERSIONS', false),
+    'conversion_log_retention_days' => 30,
+
     'bot_detection' => [
         'enabled' => true,
         'track_separately' => true,

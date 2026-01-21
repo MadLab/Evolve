@@ -2,11 +2,13 @@
 
 namespace MadLab\Evolve;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use MadLab\Evolve\Console\Commands\PruneConversionLogs;
 use MadLab\Evolve\Models\Evolve;
 use MadLab\Evolve\Services\BotDetector;
 
@@ -25,10 +27,16 @@ class EvolveServiceProvider extends ServiceProvider
         $this->registerRoutes();
 
         if ($this->app->runningInConsole()) {
+            $this->commands([PruneConversionLogs::class]);
+
             $this->publishes([
                 __DIR__.'/../config/config.php' => config_path('evolve.php'),
             ], 'evolve-config');
         }
+
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
+            $schedule->command('evolve:prune-logs')->daily();
+        });
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'evolve');

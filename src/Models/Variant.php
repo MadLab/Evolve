@@ -4,6 +4,7 @@ namespace MadLab\Evolve\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -35,6 +36,11 @@ class Variant extends Model
     public function experiment(): BelongsTo
     {
         return $this->belongsTo(Evolve::class);
+    }
+
+    public function conversionLogs(): HasMany
+    {
+        return $this->hasMany(ConversionLog::class);
     }
 
     public function confidenceIsBest(string $conversionName): float
